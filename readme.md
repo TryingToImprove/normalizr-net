@@ -171,3 +171,8 @@ var normalizedResult = Normalizr.Normalize(blogSchema, blog);
   "result": 23 // The id of the main entity (blog)
 }
 ```
+
+API
+---------------------------
+
+To be described
