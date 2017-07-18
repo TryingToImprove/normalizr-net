@@ -3,6 +3,10 @@ Normalizr.NET
 
 This project is inspired by https://github.com/paularmstrong/normalizr and is used for normalizing data structure.
 
+```
+Install-Package Normalizr.NET
+```
+
 Motivation
 ---------------------------
 
