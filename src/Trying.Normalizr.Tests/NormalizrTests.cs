@@ -19,7 +19,7 @@ namespace Trying.Normalizr.Tests
                 x.Id(y => y.Id);
                 x.Reference(y => y.Author, userSchema);
             });
-            
+
             Assert.IsTrue(blogSchema.References.ContainsKey("Author"));
             Assert.AreEqual(userSchema, blogSchema.References["Author"]);
         }
@@ -61,6 +61,59 @@ namespace Trying.Normalizr.Tests
             Assert.IsTrue(blogEntities.ContainsKey(34));
 
             Assert.AreEqual(34, response.Result);
+        }
+        
+        [TestMethod]
+        public void Normalizr_ShouldBeAbleToTransform()
+        {
+            var blogSchema = Normalizr.Schema<Blog>("blogs", x =>
+            {
+                x.Id(y => y.Id);
+                x.Transform(y => y.Text, (y, resolver, model) => $"Transform_{y}_{model["Id"].ToObject<string>()}");
+            });
+
+            var input = new Blog
+            {
+                Id = 34,
+                Text = "HelloWorld"
+            };
+
+            var normalizr = new Normalizr(blogSchema);
+            var response = normalizr.Normalize(input);
+
+            var blog = response.Entities["blogs"][34] as JToken;
+
+            Assert.IsNotNull(blog);
+            Assert.AreEqual("Transform_HelloWorld_34", blog["Text"]);
+        }
+
+        [TestMethod]
+        public void Normalizr_ShouldBeAbleToTransform_WithResolver()
+        {
+            var blogSchema = Normalizr.Schema<Blog>("blogs", x =>
+            {
+                x.Id(y => y.Id);
+                x.Transform(y => y.Text, (y, resolver, model) => $"{resolver[typeof(string)]}_{y}_{model["Id"].ToObject<string>()}");
+            });
+
+            var input = new Blog
+            {
+                Id = 34,
+                Text = "HelloWorld"
+            };
+
+            var resolverX = new Dictionary<Type, object>
+            {
+                {typeof(string), "GoodDay"}
+            };
+
+            var normalizr = new Normalizr(blogSchema, resolverX);
+            var response = normalizr.Normalize(input);
+
+            var blog = response.Entities["blogs"][34] as JToken;
+
+            Assert.IsNotNull(blog);
+            Assert.AreEqual("GoodDay_HelloWorld_34", blog["Text"]);
         }
 
         [TestMethod]

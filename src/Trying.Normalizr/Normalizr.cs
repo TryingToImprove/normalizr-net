@@ -13,11 +13,13 @@ namespace Trying.Normalizr
     public class Normalizr
     {
         private readonly IDictionary<ISchema, IDictionary<JToken, JToken>> _entities = new Dictionary<ISchema, IDictionary<JToken, JToken>>();
+        private readonly IDictionary<Type, object> _resolver;
 
         private readonly ISchema _schema;
 
-        public Normalizr(ISchema schema)
+        public Normalizr(ISchema schema, IDictionary<Type, object> resolver = null)
         {
+            _resolver = resolver;
             _schema = schema;
         }
 
@@ -70,6 +72,16 @@ namespace Trying.Normalizr
                     if (!entities.TryGetValue(workingItem.Object[workingItem.Schema.IdAttribute.Name],
                         out JToken entity))
                     {
+                        if (workingItem.Schema.Transforms.Any())
+                        {
+                            foreach (var transformPair in workingItem.Schema.Transforms)
+                            {
+                                workingItem.Object[transformPair.Key] = JToken.FromObject(
+                                    transformPair.Value.Invoke(workingItem.Object[transformPair.Key], _resolver, workingItem.Object)
+                                );
+                            }
+                        }
+
                         entities.Add(workingItem.Object[workingItem.Schema.IdAttribute.Name], workingItem.Object);
                     }
                 }
@@ -126,15 +138,15 @@ namespace Trying.Normalizr
 
         internal static ISchema Schema<T>(string name, SchemaConfigurator<T> configuration)
         {
-            return new Schema<T>(name, configuration.IdAttribute, configuration.References);
+            return new Schema<T>(name, configuration.IdAttribute, configuration.References, configuration.Transforms);
         }
 
-        public static NormalizedResult Normalize(ISchema schema, object input)
+        public static NormalizedResult Normalize(ISchema schema, object input, IDictionary<Type, object> resolver = null)
         {
             if (schema == null) throw new ArgumentNullException(nameof(schema));
             if (input == null) throw new ArgumentNullException(nameof(input));
 
-            var normalizr = new Normalizr(schema);
+            var normalizr = new Normalizr(schema, resolver);
             return normalizr.Normalize(input);
         }
 
